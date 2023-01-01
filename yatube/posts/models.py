@@ -18,7 +18,7 @@ class Post(models.Model):
     def __str__(self):
         return self.text
 
-    text = models.TextField()
+    text = models.TextField(verbose_name='Текст')
     pub_date = models.DateTimeField(auto_now_add=True)
     author = models.ForeignKey(
         User,
@@ -30,7 +30,8 @@ class Post(models.Model):
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
-        related_name='posts'
+        related_name='posts',
+        verbose_name='Группа'
     )
 
     class Meta:

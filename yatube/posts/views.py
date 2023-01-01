@@ -1,31 +1,27 @@
+from .common import paginator
 from django.contrib.auth import get_user_model
-from django.core.paginator import Paginator
-# from django.db.models import Count
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import PostForm
 from .models import Group, Post
 
-amount = 10
+AMOUNT = 10
 User = get_user_model()
 
 
 def index(request):
 
     template = 'posts/index.html'
-    post_list = Post.objects.all()
+    post_list = Post.objects.select_related()
     text = 'Это главная страница проекта Yatube'
     title = 'Main page'
-
-    paginator = Paginator(post_list, amount)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
 
     context = {
         'text': text,
         'posts': post_list,
         'title': title,
-        'page_obj': page_obj,
+        'page_obj': paginator(request, post_list, AMOUNT),
     }
     return render(request, template, context)
 
@@ -35,16 +31,10 @@ def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
     post_list = group.posts.all()
 
-    paginator = Paginator(post_list, amount)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
     context = {
         'title': 'Сообщества',
         'group': group,
-        'posts': post_list,
-        'self_title': group.__str__,
-        'page_obj': page_obj,
+        'page_obj': paginator(request, post_list, AMOUNT),
     }
     return render(request, template, context)
 
@@ -52,20 +42,14 @@ def group_posts(request, slug):
 def profile(request, username):
     template = 'posts/profile.html'
     user = get_object_or_404(User, username=username)
-    posts = user.posts.all()
-    posts_count = posts.count()
+    post_list = user.posts.all()
+    posts_count = post_list.count()
     title = f'Профайл пользователя {username}'
 
-    paginator = Paginator(posts, amount)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
     context = {
-        # 'username': username,
-        'posts': posts,
         'posts_count': posts_count,
         'title': title,
-        'page_obj': page_obj,
+        'page_obj': paginator(request, post_list, AMOUNT),
         'author': user,
     }
     return render(request, template, context)
@@ -81,6 +65,7 @@ def post_detail(request, post_id):
     return render(request, template, context)
 
 
+@login_required
 def post_create(request):
     template = 'posts/create_post.html'
 
@@ -105,6 +90,7 @@ def post_create(request):
     })
 
 
+@login_required
 def post_edit(request, post_id):
     template = 'posts/create_post.html'
 
@@ -119,7 +105,6 @@ def post_edit(request, post_id):
 
         if form.is_valid():
             post = form.save(commit=False)
-            post.author = current_user
             post.save()
             return redirect('posts:post_detail', post_id)
 
